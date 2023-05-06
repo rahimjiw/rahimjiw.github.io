@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Last Time</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="apple-touch-icon" sizes="120x120" href="images/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+    <link rel="manifest" href="images/site.webmanifest">
+    <link rel="mask-icon" href="/images/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#ffffff">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+   
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous" />
+
+        <!-- Google tag (gtag.js) -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=G-1C91MP70X6"></script>
+	<script>
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag('js', new Date());
+
+	gtag('config', 'G-1C91MP70X6');
+	</script>
+</head>
+
+<body style="background-color: black;">
+    <div class="d-flex align-items-center justify-content-center vh-100">
+        <div class="card" style="width: 18rem;">
+            <div class="card-body" style="text-align: center;">
+                <h5 class="card-title">Last time</h5>
+                <p class="card-text">
+                    <span id="time"></span>
+                </p>
+                <a onclick="updateLastTime()" class="btn btn-primary">Update</a>
+            </div>
+        </div>
+    </div>
+</body>
+
+<script>
+    
+    function updateLastTime() {
+        let now = new Date().toLocaleTimeString("fr-FR").slice(0,5);
+        document.getElementById("time").innerHTML = now;
+        localStorage.setItem("last.time.now", now);
+    }
+
+    function initLastTime() {
+        let now = localStorage.getItem("last.time.now");
+        if (now) {
+            document.getElementById("time").innerHTML = now;
+        }
+    }
+
+    initLastTime();
+    
+</script>
+
+</html>
