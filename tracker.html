@@ -1,60 +1,146 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Tracker Cigarette</title>
-<style>
-  :root {
-    --bg: rgb(0,0,33);
-    --text: #fff;
-    --primary: #ff6666;
-    --primary-hover: #ff4c4c;
-    --good-bg: #d4edda;
-    --good-text: #155724;
-    --bad-bg: #f8d7da;
-    --bad-text: #721c24;
-    --warn-bg: #fff3cd;
-    --warn-text: #856404;
-  }
-  body {
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    margin: 0; padding: 40px 16px;
-    display: grid; place-items: center;
-  }
-  .app {
-    width: 100%; max-width: 520px;
-    background: white; border-radius: 16px; padding: 28px;
-    box-shadow: 0 10px 30px rgba(0,0,0,.08);
-    text-align: center;
-  }
-  h1 { margin: 0 0 12px; font-size: 1.6rem; color: #000; }
-  #timer {
-    font-size: 2rem; margin: 12px 0 8px; font-variant-numeric: tabular-nums;
-    color: #0b7a20; font-weight: 700;
-  }
-  .row { display:flex; align-items:center; justify-content:center; gap:12px; flex-wrap: wrap; }
-  button {
-    font-size: 1.05rem; padding: 12px 18px; background: var(--primary);
-    border: none; color: #fff; border-radius: 10px; cursor: pointer; font-weight: 600;
-  }
-  button:hover { background: var(--primary-hover); }
-  .last-time { margin-top: 10px; font-size: .95rem; color: #555; }
-  .status {
-    display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px;
-    font-weight: 700; font-size: .95rem; border: 1px solid transparent;
-  }
-  .status.good { background: var(--good-bg); color: var(--good-text); border-color: rgba(21,87,36,.2); }
-  .status.bad  { background: var(--bad-bg);  color: var(--bad-text);  border-color: rgba(114,28,36,.2); }
-  .status.warn { background: var(--warn-bg); color: var(--warn-text); border-color: rgba(133,100,4,.2); }
-  .dot { width: 10px; height: 10px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 3px rgba(0,0,0,.05) inset; }
-  .hint { margin-top: 14px; color: #666; font-size: .9rem; }
-  .prefs { margin-top: 18px; font-size: .9rem; color: #444; }
-  select { padding: 6px 10px; border-radius: 8px; border: 1px solid #ddd; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tracker Cigarette</title>
+  <link rel="apple-touch-icon" href="favicon.ico sizes=" 180x180" />
+  <link rel="icon" type="image/png" href="favicon.ico" sizes="180x180" />
+  <style>
+    :root {
+      --bg: rgb(0, 0, 33);
+      --text: #fff;
+      --primary: #ff6666;
+      --primary-hover: #ff4c4c;
+      --good-bg: #d4edda;
+      --good-text: #155724;
+      --bad-bg: #f8d7da;
+      --bad-text: #721c24;
+      --warn-bg: #fff3cd;
+      --warn-text: #856404;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 40px 16px;
+      display: grid;
+      place-items: center;
+    }
+
+    .app {
+      width: 100%;
+      max-width: 520px;
+      background: white;
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 1.6rem;
+      color: #000;
+    }
+
+    #timer {
+      font-size: 2rem;
+      margin: 12px 0 8px;
+      font-variant-numeric: tabular-nums;
+      color: #0b7a20;
+      font-weight: 700;
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font-size: 1.05rem;
+      padding: 12px 18px;
+      background: var(--primary);
+      border: none;
+      color: #fff;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+    }
+
+    .last-time {
+      margin-top: 10px;
+      font-size: .95rem;
+      color: #555;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: .95rem;
+      border: 1px solid transparent;
+    }
+
+    .status.good {
+      background: var(--good-bg);
+      color: var(--good-text);
+      border-color: rgba(21, 87, 36, .2);
+    }
+
+    .status.bad {
+      background: var(--bad-bg);
+      color: var(--bad-text);
+      border-color: rgba(114, 28, 36, .2);
+    }
+
+    .status.warn {
+      background: var(--warn-bg);
+      color: var(--warn-text);
+      border-color: rgba(133, 100, 4, .2);
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, .05) inset;
+    }
+
+    .hint {
+      margin-top: 14px;
+      color: #666;
+      font-size: .9rem;
+    }
+
+    .prefs {
+      margin-top: 18px;
+      font-size: .9rem;
+      color: #444;
+    }
+
+    select {
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+    }
+  </style>
 </head>
+
 <body>
   <div class="app">
     <h1>⏳ Tracker de cigarette</h1>
@@ -77,77 +163,78 @@
     <div class="hint">L'état passe au <strong>vert</strong> quand le temps écoulé dépasse le seuil choisi.</div>
   </div>
 
-<script>
-  const KEY_LAST = "lastSmokeTime";
-  const KEY_THRESH = "smokeThresholdMin";
+  <script>
+    const KEY_LAST = "lastSmokeTime";
+    const KEY_THRESH = "smokeThresholdMin";
 
-  let lastSmokeTime = localStorage.getItem(KEY_LAST);
-  let thresholdMin = parseInt(localStorage.getItem(KEY_THRESH) || "60", 10);
+    let lastSmokeTime = localStorage.getItem(KEY_LAST);
+    let thresholdMin = parseInt(localStorage.getItem(KEY_THRESH) || "60", 10);
 
-  const timerEl = document.getElementById("timer");
-  const lastEl = document.getElementById("lastTime");
-  const indicator = document.getElementById("indicator");
-  const thresholdSelect = document.getElementById("threshold");
-  thresholdSelect.value = String(thresholdMin);
+    const timerEl = document.getElementById("timer");
+    const lastEl = document.getElementById("lastTime");
+    const indicator = document.getElementById("indicator");
+    const thresholdSelect = document.getElementById("threshold");
+    thresholdSelect.value = String(thresholdMin);
 
-  function formatDiff(ms) {
-    if (ms < 0) ms = 0;
-    const totalSec = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSec / 3600);
-    const minutes = Math.floor((totalSec % 3600) / 60);
-    const seconds = totalSec % 60;
-    return `${hours}h ${minutes}m ${seconds}s`;
-  }
+    function formatDiff(ms) {
+      if (ms < 0) ms = 0;
+      const totalSec = Math.floor(ms / 1000);
+      const hours = Math.floor(totalSec / 3600);
+      const minutes = Math.floor((totalSec % 3600) / 60);
+      const seconds = totalSec % 60;
+      return `${hours}h ${minutes}m ${seconds}s`;
+    }
 
-  function setIndicator(diffMs) {
-    const thresholdMs = thresholdMin * 60 * 1000;
-    indicator.classList.remove("good","bad","warn");
+    function setIndicator(diffMs) {
+      const thresholdMs = thresholdMin * 60 * 1000;
+      indicator.classList.remove("good", "bad", "warn");
 
-    const label = indicator.querySelector("span:last-child");
-    if (diffMs >= thresholdMs) {
-      indicator.classList.add("good");
-      label.textContent = `OK (≥ ${thresholdMin} min)`;
-    } else {
-      if (diffMs >= thresholdMs / 2) {
-        indicator.classList.add("warn");
-        label.textContent = `Presque (≥ ${Math.floor(thresholdMin/2)} min)`;
+      const label = indicator.querySelector("span:last-child");
+      if (diffMs >= thresholdMs) {
+        indicator.classList.add("good");
+        label.textContent = `OK (≥ ${thresholdMin} min)`;
       } else {
-        indicator.classList.add("bad");
-        label.textContent = `Moins de ${thresholdMin} min`;
+        if (diffMs >= thresholdMs / 2) {
+          indicator.classList.add("warn");
+          label.textContent = `Presque (≥ ${Math.floor(thresholdMin / 2)} min)`;
+        } else {
+          indicator.classList.add("bad");
+          label.textContent = `Moins de ${thresholdMin} min`;
+        }
       }
     }
-  }
 
-  function updateTimer() {
-    if (!lastSmokeTime) {
-      timerEl.textContent = "Aucune cigarette enregistrée";
-      indicator.classList.remove("good","warn");
-      indicator.classList.add("bad");
-      indicator.querySelector("span:last-child").textContent = `En attente du premier clic`;
-      return;
+    function updateTimer() {
+      if (!lastSmokeTime) {
+        timerEl.textContent = "Aucune cigarette enregistrée";
+        indicator.classList.remove("good", "warn");
+        indicator.classList.add("bad");
+        indicator.querySelector("span:last-child").textContent = `En attente du premier clic`;
+        return;
+      }
+      const now = new Date();
+      const diffMs = now - new Date(lastSmokeTime);
+      timerEl.textContent = `${formatDiff(diffMs)} depuis la dernière cigarette`;
+      lastEl.textContent = "Dernière cigarette : " + new Date(lastSmokeTime).toLocaleString();
+      setIndicator(diffMs);
     }
-    const now = new Date();
-    const diffMs = now - new Date(lastSmokeTime);
-    timerEl.textContent = `${formatDiff(diffMs)} depuis la dernière cigarette`;
-    lastEl.textContent = "Dernière cigarette : " + new Date(lastSmokeTime).toLocaleString();
-    setIndicator(diffMs);
-  }
 
-  function markSmoked() {
-    lastSmokeTime = new Date().toISOString();
-    localStorage.setItem(KEY_LAST, lastSmokeTime);
+    function markSmoked() {
+      lastSmokeTime = new Date().toISOString();
+      localStorage.setItem(KEY_LAST, lastSmokeTime);
+      updateTimer();
+    }
+
+    document.getElementById("btnSmoke").addEventListener("click", markSmoked);
+    thresholdSelect.addEventListener("change", (e) => {
+      thresholdMin = parseInt(e.target.value, 10);
+      localStorage.setItem(KEY_THRESH, String(thresholdMin));
+      updateTimer();
+    });
+
+    setInterval(updateTimer, 1000);
     updateTimer();
-  }
-
-  document.getElementById("btnSmoke").addEventListener("click", markSmoked);
-  thresholdSelect.addEventListener("change", (e) => {
-    thresholdMin = parseInt(e.target.value, 10);
-    localStorage.setItem(KEY_THRESH, String(thresholdMin));
-    updateTimer();
-  });
-
-  setInterval(updateTimer, 1000);
-  updateTimer();
-</script>
+  </script>
 </body>
+
 </html>
