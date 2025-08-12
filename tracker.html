@@ -1,240 +1,236 @@
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tracker Cigarette</title>
-  <link rel="apple-touch-icon" href="favicon.ico sizes=" 180x180" />
-  <link rel="icon" type="image/png" href="favicon.ico" sizes="180x180" />
+  <title>Compteur Cigarettes — Journalier + Stats Mensuelles</title>
+  <meta name="color-scheme" content="dark">
   <style>
-    :root {
-      --bg: rgb(0, 0, 33);
-      --text: #fff;
-      --primary: #ff6666;
-      --primary-hover: #ff4c4c;
-      --good-bg: #d4edda;
-      --good-text: #155724;
-      --bad-bg: #f8d7da;
-      --bad-text: #721c24;
-      --warn-bg: #fff3cd;
-      --warn-text: #856404;
+    :root{
+      --bg:#07090b; --card:rgba(10,16,22,.6); --border:rgba(0,255,170,.2); --text:#e6f6ff; --muted:#a6c7cf;
+      --blue:#2ab3ff; --green:#00ffa8; --focus:#7fffd4; --red:#ff5f87; --shadow:0 10px 30px rgba(0,0,0,.45), 0 0 40px rgba(0,255,168,.08);
     }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;color:var(--text);background:var(--bg);overflow-x:hidden;padding:24px;}
 
-    body {
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      margin: 0;
-      padding: 40px 16px;
-      display: grid;
-      place-items: center;
-    }
+    .backdrop{position:fixed;inset:0;pointer-events:none;filter:blur(60px) saturate(120%);background:
+      radial-gradient(70vmax 70vmax at 15% 20%, rgba(0,255,168,.12), transparent 55%),
+      radial-gradient(60vmax 60vmax at 85% 30%, rgba(42,179,255,.12), transparent 60%),
+      radial-gradient(50vmax 50vmax at 50% 80%, rgba(0,70,40,.35), transparent 60%);
+      animation:drift 30s ease-in-out infinite alternate}
+    @keyframes drift{from{transform:translateY(-2%) scale(1)}to{transform:translateY(2%) scale(1.05)}}
+    .scan{position:fixed;inset:0;pointer-events:none;opacity:.07;mix-blend-mode:screen;background:linear-gradient(to bottom,transparent 95%, rgba(0,255,168,.4) 100%);background-size:100% 8px}
 
-    .app {
-      width: 100%;
-      max-width: 520px;
-      background: white;
-      border-radius: 16px;
-      padding: 28px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, .08);
-      text-align: center;
-    }
+    main{position:relative;z-index:1;display:grid;gap:16px;max-width:1200px;margin:0 auto}
 
-    h1 {
-      margin: 0 0 12px;
-      font-size: 1.6rem;
-      color: #000;
-    }
+    .card{background:linear-gradient(180deg, rgba(12,18,24,.7), rgba(5,10,12,.6));border:1px solid var(--border);border-radius:24px;padding:22px;box-shadow:var(--shadow);backdrop-filter:blur(14px)}
 
-    #timer {
-      font-size: 2rem;
-      margin: 12px 0 8px;
-      font-variant-numeric: tabular-nums;
-      color: #0b7a20;
-      font-weight: 700;
-    }
+    .header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    h1{margin:0;font-weight:800;letter-spacing:.4px;font-size:clamp(20px,3vw,28px);background:linear-gradient(90deg,var(--green),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 12px rgba(0,255,168,.25)}
 
-    .row {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
+    .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    button{appearance:none;border:none;cursor:pointer;border-radius:14px;padding:10px 14px;font-weight:700;color:var(--text);background:linear-gradient(180deg, rgba(0,255,168,.16), rgba(42,179,255,.16));outline:1px solid rgba(0,255,168,.18);transition:transform .15s ease, box-shadow .2s ease, outline-color .2s ease}
+    button:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,255,168,.18)}
+    button:focus-visible{outline-color:var(--focus)}
 
-    button {
-      font-size: 1.05rem;
-      padding: 12px 18px;
-      background: var(--primary);
-      border: none;
-      color: #fff;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 600;
-    }
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid rgba(0,255,168,.25);background:rgba(0,255,168,.07);font-weight:800}
+    .stat{font-variant-numeric:tabular-nums}
 
-    button:hover {
-      background: var(--primary-hover);
-    }
+    .grid{display:grid;grid-template-columns:1fr;gap:14px}
+    @media (min-width: 980px){.grid{grid-template-columns: 1.2fr .8fr}}
 
-    .last-time {
-      margin-top: 10px;
-      font-size: .95rem;
-      color: #555;
-    }
+    .panel h3{margin:0 0 10px;font-size:14px;letter-spacing:.3px;text-transform:uppercase;color:var(--muted)}
 
-    .status {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-weight: 700;
-      font-size: .95rem;
-      border: 1px solid transparent;
-    }
+    .today{display:grid;grid-template-columns:1fr;gap:12px}
+    .count{font-size:clamp(28px,6vw,40px);font-weight:900;color:#baffea;text-shadow:0 0 14px rgba(0,255,168,.18)}
 
-    .status.good {
-      background: var(--good-bg);
-      color: var(--good-text);
-      border-color: rgba(21, 87, 36, .2);
-    }
+    .bar-wrap{height:16px;border-radius:999px;background:rgba(42,179,255,.15);border:1px solid rgba(42,179,255,.25);overflow:hidden}
+    .bar{height:100%;width:0%;background:linear-gradient(90deg, var(--green), var(--blue));box-shadow:0 0 16px rgba(0,255,168,.35) inset;transition:width .4s ease}
 
-    .status.bad {
-      background: var(--bad-bg);
-      color: var(--bad-text);
-      border-color: rgba(114, 28, 36, .2);
-    }
+    .cal-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+    .dow{font-size:12px;color:var(--muted);text-align:center}
+    .day{border:1px solid rgba(42,179,255,.18);border-radius:12px;padding:8px;min-height:74px;background:linear-gradient(180deg, rgba(6,18,28,.5), rgba(6,18,28,.35));display:flex;flex-direction:column;gap:6px}
+    .day .d{font-size:12px;color:var(--muted)}
+    .day .c{font-size:18px;font-weight:800}
+    .day .spark{height:6px;background:rgba(0,0,0,.25);border-radius:6px;overflow:hidden}
+    .day .spark > div{height:100%;width:0%}
+    .day.today{outline:1px dashed rgba(0,255,168,.4)}
+    .day.off{opacity:.35}
 
-    .status.warn {
-      background: var(--warn-bg);
-      color: var(--warn-text);
-      border-color: rgba(133, 100, 4, .2);
-    }
+    .footer{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.9rem;margin-top:10px}
 
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: currentColor;
-      box-shadow: 0 0 0 3px rgba(0, 0, 0, .05) inset;
-    }
+    .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,.7);border:1px solid rgba(0,255,168,.3);padding:10px 14px;border-radius:12px;opacity:0;transition:opacity .25s ease, transform .25s ease;pointer-events:none;box-shadow:0 10px 30px rgba(0,255,168,.12)}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
-    .hint {
-      margin-top: 14px;
-      color: #666;
-      font-size: .9rem;
-    }
-
-    .prefs {
-      margin-top: 18px;
-      font-size: .9rem;
-      color: #444;
-    }
-
-    select {
-      padding: 6px 10px;
-      border-radius: 8px;
-      border: 1px solid #ddd;
-    }
+    .muted{color:var(--muted)}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
   </style>
 </head>
-
 <body>
-  <div class="app">
-    <h1>⏳ Tracker de cigarette</h1>
-    <div id="timer">Calcul en cours...</div>
-    <div class="row" style="margin:12px 0 18px">
-      <button id="btnSmoke">🚬 J'ai fumé</button>
-      <div id="indicator" class="status bad" aria-live="polite"><span class="dot"></span><span>Moins d'1 h</span></div>
-    </div>
-    <div class="last-time" id="lastTime">Dernière cigarette : -</div>
+  <div class="backdrop" aria-hidden="true"></div>
+  <div class="scan" aria-hidden="true"></div>
 
-    <div class="prefs">
-      Seuil indicateur :
-      <select id="threshold">
-        <option value="60">1 heure</option>
-        <option value="120">2 heures</option>
-        <option value="180">3 heures</option>
-        <option value="240">4 heures</option>
-      </select>
-    </div>
-    <div class="hint">L'état passe au <strong>vert</strong> quand le temps écoulé dépasse le seuil choisi.</div>
-  </div>
+  <main>
+    <section class="card header">
+      <h1>🚬 Compteur de cigarettes</h1>
+      <div class="controls">
+        <button id="btnAdd">+1</button>
+        <button id="btnUndo">↶ Annuler</button>
+        <button id="btnReset">↺ Remise à zéro (aujourd'hui)</button>
+        <span class="pill">Aujourd'hui : <span id="todayCount" class="stat mono" style="margin-left:8px">0</span></span>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card panel">
+        <h3>Aujourd'hui</h3>
+        <div class="today">
+          <div class="count"><span id="countBig">0</span> cigarette(s)</div>
+          <div class="bar-wrap" aria-hidden="true"><div id="bar" class="bar"></div></div>
+          <div class="muted">Dernière action : <span id="lastAction" class="mono">—</span></div>
+          <div class="muted">Date : <span id="todayDate" class="mono">—</span></div>
+        </div>
+      </div>
+
+      <div class="card panel">
+        <div class="cal-head">
+          <h3 id="monthLabel">Mois</h3>
+          <div class="controls">
+            <button id="prevMonth">◀</button>
+            <button id="thisMonth">Aujourd'hui</button>
+            <button id="nextMonth">▶</button>
+          </div>
+        </div>
+        <div class="cal-grid" id="dow">
+          <div class="dow">L</div><div class="dow">M</div><div class="dow">M</div><div class="dow">J</div><div class="dow">V</div><div class="dow">S</div><div class="dow">D</div>
+        </div>
+        <div class="cal-grid" id="calendar" aria-live="polite"></div>
+        <div class="footer">
+          <div>Total du mois : <span id="monthTotal" class="mono">0</span></div>
+          <div>Moyenne/jour : <span id="monthAvg" class="mono">0</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card panel">
+      <h3>Sauvegarde locale</h3>
+      <div class="controls" style="flex-wrap:wrap">
+        <button id="btnExport">⤴ Exporter JSON</button>
+        <input id="importFile" type="file" accept="application/json" style="display:none" />
+        <button id="btnImport">⤵ Importer JSON</button>
+        <button id="btnClearAll" style="border-color:rgba(255,95,135,.45);outline-color:rgba(255,95,135,.45)">🗑 Effacer toutes les stats</button>
+      </div>
+      <p class="muted">Les données sont stockées dans votre navigateur (localStorage). L'export permet de garder une sauvegarde.</p>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script>
-    const KEY_LAST = "lastSmokeTime";
-    const KEY_THRESH = "smokeThresholdMin";
+    // --- Storage & keys ---
+    const KEY_DATA = 'smoke.daily.counts.v1'; // { 'YYYY-MM-DD': { count:number, history:number[] timestamps } }
+    const state = { data: {}, currentMonth: new Date() };
 
-    let lastSmokeTime = localStorage.getItem(KEY_LAST);
-    let thresholdMin = parseInt(localStorage.getItem(KEY_THRESH) || "60", 10);
+    // Helpers
+    const $ = id => document.getElementById(id);
+    const fmtDateLabel = (d)=> new Intl.DateTimeFormat('fr-FR', { dateStyle: 'full' }).format(d);
+    const fmtMonthLabel = (d)=> new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(d);
+    const toKey = (d)=> d.toISOString().slice(0,10);
+    const startOfDayLocal = (d)=> new Date(d.getFullYear(), d.getMonth(), d.getDate());
 
-    const timerEl = document.getElementById("timer");
-    const lastEl = document.getElementById("lastTime");
-    const indicator = document.getElementById("indicator");
-    const thresholdSelect = document.getElementById("threshold");
-    thresholdSelect.value = String(thresholdMin);
+    function load(){
+      try{ state.data = JSON.parse(localStorage.getItem(KEY_DATA) || '{}'); }
+      catch{ state.data = {}; }
+    }
+    function save(){ localStorage.setItem(KEY_DATA, JSON.stringify(state.data)); }
 
-    function formatDiff(ms) {
-      if (ms < 0) ms = 0;
-      const totalSec = Math.floor(ms / 1000);
-      const hours = Math.floor(totalSec / 3600);
-      const minutes = Math.floor((totalSec % 3600) / 60);
-      const seconds = totalSec % 60;
-      return `${hours}h ${minutes}m ${seconds}s`;
+    function ensureDay(key){ if(!state.data[key]) state.data[key] = { count:0, history:[] }; }
+
+    function todayKey(){ const now = new Date(); const k = toKey(new Date(now.getTime() - now.getTimezoneOffset()*60000)); return k; }
+
+    function addOne(){ const k = todayKey(); ensureDay(k); state.data[k].count++; state.data[k].history.push(Date.now()); save(); renderToday(); renderMonth(); toast('Ajouté +1'); }
+    function undoOne(){ const k = todayKey(); ensureDay(k); if(state.data[k].count>0){ state.data[k].count--; state.data[k].history.pop(); save(); renderToday(); renderMonth(); toast('Annulé -1'); } else { toast('Rien à annuler'); } }
+    function resetToday(){ const k = todayKey(); ensureDay(k); state.data[k] = { count:0, history:[] }; save(); renderToday(); renderMonth(); toast('Réinitialisé'); }
+
+    function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove('show'), 2000); }
+
+    // --- Rendering: Today ---
+    function renderToday(){
+      const k = todayKey(); ensureDay(k);
+      const c = state.data[k].count || 0;
+      $('todayCount').textContent = c;
+      $('countBig').textContent = c;
+      $('todayDate').textContent = fmtDateLabel(new Date());
+      $('lastAction').textContent = state.data[k].history.length ? new Date(state.data[k].history[state.data[k].history.length-1]).toLocaleString('fr-FR') : '—';
+      const pct = Math.min(100, (c/20)*100); // barre indicative vs 20 / jour (modifiable si besoin)
+      $('bar').style.width = pct + '%';
     }
 
-    function setIndicator(diffMs) {
-      const thresholdMs = thresholdMin * 60 * 1000;
-      indicator.classList.remove("good", "bad", "warn");
+    // --- Rendering: Month calendar ---
+    function renderMonth(){
+      const base = state.currentMonth;
+      const y = base.getFullYear();
+      const m = base.getMonth();
+      const first = new Date(y,m,1);
+      const start = new Date(first);
+      // Monday-based week: getDay() Mon=1..Sun=0, so compute shift
+      let shift = (first.getDay()+6)%7; // 0..6, number of blanks before day 1
+      const daysInMonth = new Date(y,m+1,0).getDate();
 
-      const label = indicator.querySelector("span:last-child");
-      if (diffMs >= thresholdMs) {
-        indicator.classList.add("good");
-        label.textContent = `OK (≥ ${thresholdMin} min)`;
-      } else {
-        if (diffMs >= thresholdMs / 2) {
-          indicator.classList.add("warn");
-          label.textContent = `Presque (≥ ${Math.floor(thresholdMin / 2)} min)`;
-        } else {
-          indicator.classList.add("bad");
-          label.textContent = `Moins de ${thresholdMin} min`;
-        }
+      $('monthLabel').textContent = fmtMonthLabel(base).replace(/^./, s=>s.toUpperCase());
+      const grid = $('calendar'); grid.innerHTML='';
+
+      // Fill leading blanks
+      for(let i=0;i<shift;i++) grid.appendChild(dayCell(null,true));
+      // Fill month days
+      for(let d=1; d<=daysInMonth; d++){
+        const date = new Date(y,m,d);
+        const key = toKey(new Date(date.getTime() - date.getTimezoneOffset()*60000));
+        const count = (state.data[key]?.count)||0;
+        const isToday = key===todayKey();
+        grid.appendChild(dayCell({d,count,isToday}));
       }
+      // Footer stats
+      let total=0; for(let d=1; d<=daysInMonth; d++){ const key = toKey(new Date(y,m,d).toISOString().slice(0,10)); total += (state.data[toKey(new Date(y,m,d))]?.count)||0; }
+      $('monthTotal').textContent = total;
+      $('monthAvg').textContent = (total/daysInMonth).toFixed(1);
     }
 
-    function updateTimer() {
-      if (!lastSmokeTime) {
-        timerEl.textContent = "Aucune cigarette enregistrée";
-        indicator.classList.remove("good", "warn");
-        indicator.classList.add("bad");
-        indicator.querySelector("span:last-child").textContent = `En attente du premier clic`;
-        return;
-      }
-      const now = new Date();
-      const diffMs = now - new Date(lastSmokeTime);
-      timerEl.textContent = `${formatDiff(diffMs)} depuis la dernière cigarette`;
-      lastEl.textContent = "Dernière cigarette : " + new Date(lastSmokeTime).toLocaleString();
-      setIndicator(diffMs);
+    function dayCell(info, off=false){
+      const el = document.createElement('div'); el.className='day'+(off?' off':'');
+      if(!info){ el.innerHTML = ''; return el; }
+      if(info.isToday) el.classList.add('today');
+      const pct = Math.min(100, (info.count/20)*100);
+      el.innerHTML = `<div class="d">${String(info.d)}</div>
+        <div class="c">${info.count}</div>
+        <div class="spark"><div style="width:${pct}%; background:linear-gradient(90deg, var(--green), var(--blue));"></div></div>`;
+      return el;
     }
 
-    function markSmoked() {
-      lastSmokeTime = new Date().toISOString();
-      localStorage.setItem(KEY_LAST, lastSmokeTime);
-      updateTimer();
-    }
+    // --- Month navigation ---
+    function shiftMonth(delta){ const d = state.currentMonth; state.currentMonth = new Date(d.getFullYear(), d.getMonth()+delta, 1); renderMonth(); }
 
-    document.getElementById("btnSmoke").addEventListener("click", markSmoked);
-    thresholdSelect.addEventListener("change", (e) => {
-      thresholdMin = parseInt(e.target.value, 10);
-      localStorage.setItem(KEY_THRESH, String(thresholdMin));
-      updateTimer();
-    });
+    // --- Export / Import / Clear ---
+    function exportJSON(){ const blob = new Blob([JSON.stringify(state.data,null,2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='cigarettes_stats.json'; a.click(); URL.revokeObjectURL(url); }
+    function importJSON(file){ const r = new FileReader(); r.onload = ()=>{ try{ const obj = JSON.parse(r.result); if(obj && typeof obj==='object'){ state.data = obj; save(); renderToday(); renderMonth(); toast('Import OK'); } else { toast('Fichier invalide'); } } catch{ toast('JSON invalide'); } }; r.readAsText(file); }
+    function clearAll(){ if(confirm('Effacer TOUTES les stats ?')){ state.data = {}; save(); renderToday(); renderMonth(); toast('Tout effacé'); } }
 
-    setInterval(updateTimer, 1000);
-    updateTimer();
+    // --- Events ---
+    $('btnAdd').addEventListener('click', addOne);
+    $('btnUndo').addEventListener('click', undoOne);
+    $('btnReset').addEventListener('click', resetToday);
+    $('prevMonth').addEventListener('click', ()=>shiftMonth(-1));
+    $('nextMonth').addEventListener('click', ()=>shiftMonth(1));
+    $('thisMonth').addEventListener('click', ()=>{ state.currentMonth = new Date(); renderMonth(); });
+    $('btnExport').addEventListener('click', exportJSON);
+    $('btnImport').addEventListener('click', ()=> $('importFile').click());
+    $('importFile').addEventListener('change', (e)=>{ const f=e.target.files?.[0]; if(f) importJSON(f); e.target.value=''; });
+    $('btnClearAll').addEventListener('click', clearAll);
+
+    // --- Init ---
+    load(); renderToday(); renderMonth();
   </script>
 </body>
-
 </html>
