@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IP</title>
+  <meta name="color-scheme" content="dark">
+  <style>
+    :root{
+      --bg: #07090b;
+      --card: rgba(10,16,22,0.6);
+      --border: rgba(0,255,170,0.2);
+      --text: #e6f6ff;
+      --muted: #a6c7cf;
+      --blue: #2ab3ff;
+      --green: #00ffa8;
+      --focus: #7fffd4;
+      --shadow: 0 10px 30px rgba(0,0,0,0.45), 0 0 40px rgba(0,255,168,0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      color:var(--text); background: var(--bg);
+      overflow:hidden;
+    }
+
+    /* Animated gradient backdrop */
+    .backdrop{
+      position: fixed; inset: 0; pointer-events:none; filter: blur(60px) saturate(120%);
+      background:
+        radial-gradient(70vmax 70vmax at 15% 20%, rgba(0,255,168,0.12), transparent 55%),
+        radial-gradient(60vmax 60vmax at 85% 30%, rgba(42,179,255,0.12), transparent 60%),
+        radial-gradient(50vmax 50vmax at 50% 80%, rgba(0,70,40,0.35), transparent 60%);
+      animation: drift 30s ease-in-out infinite alternate;
+    }
+    @keyframes drift {
+      from { transform: translateY(-2%) scale(1); }
+      to   { transform: translateY(2%)  scale(1.05); }
+    }
+
+    /* Subtle scanlines for cyber vibe */
+    .scan{
+      position: fixed; inset:0; pointer-events:none; opacity:0.07; mix-blend-mode: screen;
+      background: linear-gradient(to bottom, transparent 95%, rgba(0,255,168,0.4) 100%);
+      background-size: 100% 8px;
+    }
+
+    main{
+      position:relative; z-index:1; min-height:100%; display:grid; place-items:center; padding:24px;
+    }
+
+    .card{
+      width:min(780px, 92vw);
+      background: linear-gradient(180deg, rgba(12,18,24,0.7), rgba(5,10,12,0.6));
+      border: 1px solid var(--border); border-radius: 24px; padding: 28px; box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .header{
+      display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:18px;
+    }
+    h1{
+      margin:0; font-weight:700; letter-spacing:0.4px; font-size: clamp(20px, 3vw, 28px);
+      background: linear-gradient(90deg, var(--green), var(--blue));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-shadow: 0 0 12px rgba(0,255,168,0.25);
+    }
+
+    .actions{ display:flex; gap:10px; }
+    button{
+      appearance:none; border:none; cursor:pointer; border-radius:14px; padding:10px 14px; font-weight:600;
+      color:var(--text); background: linear-gradient(180deg, rgba(0,255,168,0.16), rgba(42,179,255,0.16));
+      outline: 1px solid rgba(0,255,168,0.18);
+      transition: transform .15s ease, box-shadow .2s ease, outline-color .2s ease;
+    }
+    button:hover{ transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,255,168,0.18); }
+    button:active{ transform: translateY(0); }
+    button:focus-visible{ outline-color: var(--focus); }
+
+    .panel{
+      display:grid; grid-template-columns: 1fr; gap: 18px; margin-top: 6px;
+    }
+
+    .ip-row{
+      display:flex; align-items:center; gap:12px; padding:14px; border-radius:16px;
+      border:1px solid rgba(42,179,255,0.18);
+      background: linear-gradient(180deg, rgba(6,18,28,0.5), rgba(6,18,28,0.35));
+    }
+    .label{ font-size: 12px; letter-spacing: .4px; color: var(--muted); text-transform: uppercase; }
+    .value{ font-size: clamp(22px, 5vw, 36px); font-variant-numeric: tabular-nums; word-break: break-all; }
+
+    .muted{ color: var(--muted); }
+
+    .status{ display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted); }
+    .dot{ width:10px; height:10px; border-radius:50%; background: radial-gradient(circle at 40% 40%, var(--green), #094);
+          box-shadow: 0 0 16px rgba(0,255,168,0.55);
+          animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse { 50% { transform: scale(1.15); filter: brightness(1.2); } }
+
+    .footer{ margin-top:18px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .hint{ font-size:12px; color:var(--muted); }
+
+    .toast{
+      position: fixed; left:50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+      background: rgba(0,0,0,0.7); border:1px solid rgba(0,255,168,0.3); padding:10px 14px; border-radius:12px;
+      opacity:0; transition: opacity .25s ease, transform .25s ease; pointer-events:none;
+      box-shadow: 0 10px 30px rgba(0,255,168,0.12);
+    }
+    .toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
+
+    /* Responsive extras */
+    @media (min-width: 680px){
+      .panel{ grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"></div>
+  <div class="scan" aria-hidden="true"></div>
+
+  <main>
+    <section class="card" role="region" aria-labelledby="title">
+      <div class="header">
+        <h1 id="title">Votre adresse IP</h1>
+        <div class="actions">
+          <button id="refreshBtn" aria-label="Rafraîchir l'adresse IP">⟳ Rafraîchir</button>
+          <button id="copyBtn" aria-label="Copier l'adresse IP">⧉ Copier</button>
+        </div>
+      </div>
+
+      <div class="status" id="status"><span class="dot" aria-hidden="true"></span><span>Initialisation…</span></div>
+
+      <div class="panel" id="panel">
+        <div class="ip-row" id="row-v4" hidden>
+          <div>
+            <div class="label">IPv4</div>
+            <div class="value" id="ipv4">—</div>
+          </div>
+        </div>
+        <div class="ip-row" id="row-v6" hidden>
+          <div>
+            <div class="label">IPv6</div>
+            <div class="value" id="ipv6">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="hint">Astuce : cliquez sur « Copier » pour garder l’adresse dans votre presse‑papiers.</div>
+        <div class="muted" id="ts"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const statusEl = $("status");
+    const tsEl = $("ts");
+    const toast = $("toast");
+
+    const endpoints = {
+      v4: "https://api.ipify.org?format=json",
+      v6: "https://api64.ipify.org?format=json"
+    };
+
+    function showToast(msg){
+      toast.textContent = msg; toast.classList.add('show');
+      clearTimeout(showToast._t); showToast._t = setTimeout(()=>toast.classList.remove('show'), 2200);
+    }
+
+    function setStatus(text){
+      statusEl.querySelector('span:last-child').textContent = text;
+    }
+
+    function setTimestamp(){
+      const now = new Date();
+      tsEl.textContent = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'medium' }).format(now);
+    }
+
+    async function fetchWithTimeout(url, ms=6000){
+      const ctrl = new AbortController();
+      const t = setTimeout(()=>ctrl.abort(), ms);
+      try{ return await fetch(url, { signal: ctrl.signal, cache: 'no-store' }); }
+      finally{ clearTimeout(t); }
+    }
+
+    async function getIP(url){
+      const res = await fetchWithTimeout(url);
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json();
+      return data.ip;
+    }
+
+    async function loadIPs(){
+      setStatus('Recherche de votre IP…');
+      setTimestamp();
+      const v4El = $('ipv4'), v6El = $('ipv6');
+      const row4 = $('row-v4'), row6 = $('row-v6');
+
+      v4El.textContent = '—'; v6El.textContent = '—';
+      row4.hidden = true; row6.hidden = true;
+
+      try{
+        const [ipv4, ipv6] = await Promise.allSettled([
+          getIP(endpoints.v4),
+          getIP(endpoints.v6)
+        ]);
+
+        if(ipv4.status === 'fulfilled'){
+          v4El.textContent = ipv4.value; row4.hidden = false;
+        }
+        if(ipv6.status === 'fulfilled'){
+          // Avoid duplicate if network only provides v4 via v6 endpoint
+          if(!(ipv4.status==='fulfilled' && ipv4.value === ipv6.value)){
+            v6El.textContent = ipv6.value; row6.hidden = false;
+          }
+        }
+
+        if(row4.hidden && row6.hidden){
+          setStatus("Impossible de récupérer l'adresse IP. Vérifiez votre connexion.");
+        } else if(!row4.hidden && !row6.hidden){
+          setStatus('IPv4 et IPv6 détectées.');
+        } else {
+          setStatus('Adresse IP détectée.');
+        }
+      } catch(err){
+        console.error(err);
+        setStatus("Erreur inattendue. Réessayez.");
+      }
+    }
+
+    $('copyBtn').addEventListener('click', async () => {
+      const ips = [ $('row-v4').hidden ? null : $('ipv4').textContent,
+                    $('row-v6').hidden ? null : $('ipv6').textContent ]
+                    .filter(Boolean).join(' \n');
+      if(!ips){ showToast("Rien à copier pour l'instant"); return; }
+      try{
+        await navigator.clipboard.writeText(ips);
+        showToast('Adresse IP copiée');
+      } catch {
+        showToast("Impossible de copier (permissions clipboard)");
+      }
+    });
+
+    $('refreshBtn').addEventListener('click', () => { loadIPs().then(()=> showToast('Actualisé')); });
+
+    // Kickoff
+    loadIPs();
+  </script>
+</body>
+</html>
