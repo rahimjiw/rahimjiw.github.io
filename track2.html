@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Compteur Cigarettes — Sync .txt (JS only)</title>
+  <meta name="color-scheme" content="dark">
+  <style>
+    :root{ --bg:#07090b; --card:rgba(10,16,22,.6); --border:rgba(0,255,170,.2); --text:#e6f6ff; --muted:#a6c7cf; --blue:#2ab3ff; --green:#00ffa8; --focus:#7fffd4; --red:#ff5f87; --shadow:0 10px 30px rgba(0,0,0,.45), 0 0 40px rgba(0,255,168,.08); }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;color:var(--text);background:var(--bg);overflow-x:hidden;padding:24px;}
+    .backdrop{position:fixed;inset:0;pointer-events:none;filter:blur(60px) saturate(120%);background:
+      radial-gradient(70vmax 70vmax at 15% 20%, rgba(0,255,168,.12), transparent 55%),
+      radial-gradient(60vmax 60vmax at 85% 30%, rgba(42,179,255,.12), transparent 60%),
+      radial-gradient(50vmax 50vmax at 50% 80%, rgba(0,70,40,.35), transparent 60%);
+      animation:drift 30s ease-in-out infinite alternate}
+    @keyframes drift{from{transform:translateY(-2%) scale(1)}to{transform:translateY(2%) scale(1.05)}}
+    .scan{position:fixed;inset:0;pointer-events:none;opacity:.07;mix-blend-mode:screen;background:linear-gradient(to bottom,transparent 95%, rgba(0,255,168,.4) 100%);background-size:100% 8px}
+
+    main{position:relative;z-index:1;display:grid;gap:16px;max-width:1200px;margin:0 auto}
+    .card{background:linear-gradient(180deg, rgba(12,18,24,.7), rgba(5,10,12,.6));border:1px solid var(--border);border-radius:24px;padding:22px;box-shadow:var(--shadow);backdrop-filter:blur(14px)}
+
+    .header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+    h1{margin:0;font-weight:800;letter-spacing:.4px;font-size:clamp(20px,3vw,28px);background:linear-gradient(90deg,var(--green),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 0 12px rgba(0,255,168,.25)}
+
+    .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    button{appearance:none;border:none;cursor:pointer;border-radius:14px;padding:10px 14px;font-weight:700;color:var(--text);background:linear-gradient(180deg, rgba(0,255,168,.16), rgba(42,179,255,.16));outline:1px solid rgba(0,255,168,.18);transition:transform .15s ease, box-shadow .2s ease, outline-color .2s ease}
+    button:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(0,255,168,.18)}
+    button:focus-visible{outline-color:var(--focus)}
+
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid rgba(0,255,168,.25);background:rgba(0,255,168,.07);font-weight:800}
+    .stat{font-variant-numeric:tabular-nums}
+
+    .grid{display:grid;grid-template-columns:1fr;gap:14px}
+    @media (min-width: 980px){.grid{grid-template-columns: 1.2fr .8fr}}
+
+    .panel h3{margin:0 0 10px;font-size:14px;letter-spacing:.3px;text-transform:uppercase;color:var(--muted)}
+
+    .today{display:grid;grid-template-columns:1fr;gap:12px}
+    .count{font-size:clamp(28px,6vw,40px);font-weight:900;color:#baffea;text-shadow:0 0 14px rgba(0,255,168,.18)}
+
+    .bar-wrap{height:16px;border-radius:999px;background:rgba(42,179,255,.15);border:1px solid rgba(42,179,255,.25);overflow:hidden}
+    .bar{height:100%;width:0%;background:linear-gradient(90deg, var(--green), var(--blue));box-shadow:0 0 16px rgba(0,255,168,.35) inset;transition:width .4s ease}
+
+    .cal-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+    .dow{font-size:12px;color:var(--muted);text-align:center}
+    .day{border:1px solid rgba(42,179,255,.18);border-radius:12px;padding:8px;min-height:74px;background:linear-gradient(180deg, rgba(6,18,28,.5), rgba(6,18,28,.35));display:flex;flex-direction:column;gap:6px}
+    .day .d{font-size:12px;color:var(--muted)}
+    .day .c{font-size:18px;font-weight:800}
+    .day .spark{height:6px;background:rgba(0,0,0,.25);border-radius:6px;overflow:hidden}
+    .day .spark > div{height:100%;width:0%}
+    .day.today{outline:1px dashed rgba(0,255,168,.4)}
+    .day.off{opacity:.35}
+
+    .footer{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.9rem;margin-top:10px}
+
+    .toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(20px);background:rgba(0,0,0,.7);border:1px solid rgba(0,255,168,.3);padding:10px 14px;border-radius:12px;opacity:0;transition:opacity .25s ease, transform .25s ease;pointer-events:none;box-shadow:0 10px 30px rgba(0,255,168,.12)}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+    .muted{color:var(--muted)}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+
+    /* Auth modal */
+    .modal{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);}
+    .sheet{width:min(480px,94vw);background:linear-gradient(180deg, rgba(12,18,24,.85), rgba(5,10,12,.75));border:1px solid var(--border);border-radius:20px;padding:20px;box-shadow:var(--shadow)}
+    .row{display:flex;gap:10px;align-items:center}
+    .input{display:flex;align-items:center;gap:10px;background:linear-gradient(180deg, rgba(6,18,28,.5), rgba(6,18,28,.35));border:1px solid rgba(42,179,255,.18);border-radius:12px;padding:10px 12px;width:100%}
+    .input input{background:transparent;border:none;outline:none;color:var(--text);width:100%}
+    .bad{color:#ffd6e1}
+    .right{margin-left:auto}
+  </style>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"></div>
+  <div class="scan" aria-hidden="true"></div>
+
+  <main>
+    <section class="card header">
+      <h1>🚬 Compteur de cigarettes</h1>
+      <div class="controls">
+        <button id="btnAdd">+1</button>
+        <button id="btnUndo">↶ Annuler</button>
+        <button id="btnReset">↺ Remise à zéro (aujourd'hui)</button>
+        <span class="pill">Aujourd'hui : <span id="todayCount" class="stat mono" style="margin-left:8px">0</span></span>
+      </div>
+      <div class="controls">
+        <span class="muted mono">Sync : <span id="syncState">offline</span></span>
+        <button id="btnSync">⟳ Forcer la sync</button>
+        <button id="btnLogout">⎋ Déconnexion</button>
+      </div>
+    </section>
+
+    <section class="grid">
+      <div class="card panel">
+        <h3>Aujourd'hui</h3>
+        <div class="today">
+          <div class="count"><span id="countBig">0</span> cigarette(s)</div>
+          <div class="bar-wrap" aria-hidden="true"><div id="bar" class="bar"></div></div>
+          <div class="muted">Dernière action : <span id="lastAction" class="mono">—</span></div>
+          <div class="muted">Date : <span id="todayDate" class="mono">—</span></div>
+        </div>
+      </div>
+
+      <div class="card panel">
+        <div class="cal-head">
+          <h3 id="monthLabel">Mois</h3>
+          <div class="controls">
+            <button id="prevMonth">◀</button>
+            <button id="thisMonth">Aujourd'hui</button>
+            <button id="nextMonth">▶</button>
+          </div>
+        </div>
+        <div class="cal-grid" id="dow">
+          <div class="dow">L</div><div class="dow">M</div><div class="dow">M</div><div class="dow">J</div><div class="dow">V</div><div class="dow">S</div><div class="dow">D</div>
+        </div>
+        <div class="cal-grid" id="calendar" aria-live="polite"></div>
+        <div class="footer">
+          <div>Total du mois : <span id="monthTotal" class="mono">0</span></div>
+          <div>Moyenne/jour : <span id="monthAvg" class="mono">0</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card panel">
+      <h3>Sync .txt (JS → WebDAV/PUT)</h3>
+      <p class="muted">Aucune API ni PHP : la page fait des <code>GET</code>/<code>PUT</code> sur un fichier <code>.txt</code> par utilisateur (max 3) via <strong>Basic Auth</strong>. Il faut que le dossier distant autorise <code>PUT</code> + <em>CORS</em>.</p>
+      <div class="controls" style="flex-wrap:wrap">
+        <button id="btnExport">⤴ Exporter JSON</button>
+        <input id="importFile" type="file" accept="application/json" style="display:none" />
+        <button id="btnImport">⤵ Importer JSON</button>
+        <button id="btnClearAll" style="border-color:rgba(255,95,135,.45);outline-color:rgba(255,95,135,.45)">🗑 Effacer toutes les stats locales</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Auth Modal -->
+  <div class="modal" id="authModal" hidden>
+    <div class="sheet">
+      <h2 style="margin:0 0 8px;background:linear-gradient(90deg,var(--green),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent;">Connexion</h2>
+      <p class="muted" style="margin:0 0 12px">Choisissez votre fichier utilisateur et entrez les identifiants Basic Auth.</p>
+      <div class="row" style="margin-bottom:8px">
+        <label class="input" style="flex:1">
+          <span class="mono">📁</span>
+          <select id="whichUser" style="background:transparent;border:none;color:var(--text);width:100%">
+            <option value="u1">Utilisateur 1 (u1.txt)</option>
+            <option value="u2">Utilisateur 2 (u2.txt)</option>
+            <option value="u3">Utilisateur 3 (u3.txt)</option>
+          </select>
+        </label>
+      </div>
+      <div class="row" style="margin-bottom:8px">
+        <label class="input"><span class="mono">🔗</span><input id="baseUrl" type="url" placeholder="https://exemple.com/data/" value="https://exemple.com/data/"></label>
+      </div>
+      <div class="row" style="margin-bottom:8px">
+        <label class="input"><span class="mono">👤</span><input id="login" type="text" placeholder="Login Basic Auth" autocomplete="username"></label>
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <label class="input"><span class="mono">🔒</span><input id="password" type="password" placeholder="Mot de passe" autocomplete="current-password"></label>
+      </div>
+      <div class="row">
+        <button id="doLogin">Se connecter</button>
+        <span id="authMsg" class="bad"></span>
+        <button id="skipAuth" class="right">Continuer hors‑ligne</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    // =============================
+    // Local state
+    // =============================
+    const KEY_DATA = 'smoke.daily.counts.v1';
+    const KEY_CFG  = 'smoke.sync.cfg.v1';
+
+    const state = { data:{}, currentMonth:new Date(), cfg: loadCfg() };
+
+    function loadCfg(){ try{ return JSON.parse(localStorage.getItem(KEY_CFG) || '{}'); } catch{ return {}; } }
+    function saveCfg(){ localStorage.setItem(KEY_CFG, JSON.stringify(state.cfg)); }
+
+    const $ = id => document.getElementById(id);
+    const fmtDateLabel = (d)=> new Intl.DateTimeFormat('fr-FR', { dateStyle: 'full' }).format(d);
+    const fmtMonthLabel = (d)=> new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(d);
+    const localDayKey = (d)=>{ const x = new Date(d.getTime() - d.getTimezoneOffset()*60000); return x.toISOString().slice(0,10); };
+    const todayKey = ()=> localDayKey(new Date());
+
+    function loadLocal(){ try{ state.data = JSON.parse(localStorage.getItem(KEY_DATA) || '{}'); } catch{ state.data = {}; } }
+    function saveLocal(){ localStorage.setItem(KEY_DATA, JSON.stringify(state.data)); }
+    function ensureDay(k){ if(!state.data[k]) state.data[k] = { count:0, history:[] }; }
+
+    function toast(msg){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(()=>t.classList.remove('show'), 2000); }
+    function setSyncState(s){ $('syncState').textContent = s; }
+
+    // =============================
+    // UI + actions
+    // =============================
+    function addOne(){ const k=todayKey(); ensureDay(k); state.data[k].count++; state.data[k].history.push(Date.now()); saveLocal(); renderToday(); renderMonth(); syncDeferred(); toast('+1'); }
+    function undoOne(){ const k=todayKey(); ensureDay(k); if(state.data[k].count>0){ state.data[k].count--; state.data[k].history.pop(); saveLocal(); renderToday(); renderMonth(); syncDeferred(); toast('−1'); } else toast('Rien à annuler'); }
+    function resetToday(){ const k=todayKey(); ensureDay(k); state.data[k] = { count:0, history:[] }; saveLocal(); renderToday(); renderMonth(); syncDeferred(); toast('Réinitialisé'); }
+
+    function renderToday(){ const k=todayKey(); ensureDay(k); const c=state.data[k].count||0; $('todayCount').textContent=c; $('countBig').textContent=c; $('todayDate').textContent=fmtDateLabel(new Date()); $('lastAction').textContent = state.data[k].history.length ? new Date(state.data[k].history.at(-1)).toLocaleString('fr-FR') : '—'; $('bar').style.width=Math.min(100,(c/20)*100)+'%'; }
+    function renderMonth(){ const base=state.currentMonth; const y=base.getFullYear(), m=base.getMonth(); const first=new Date(y,m,1); const shift=(first.getDay()+6)%7; const daysInMonth=new Date(y,m+1,0).getDate(); $('monthLabel').textContent=fmtMonthLabel(base).replace(/^./, s=>s.toUpperCase()); const grid=$('calendar'); grid.innerHTML=''; for(let i=0;i<shift;i++) grid.appendChild(dayCell(null,true)); let total=0; for(let d=1; d<=daysInMonth; d++){ const date=new Date(y,m,d); const key=localDayKey(date); const count=(state.data[key]?.count)||0; total+=count; grid.appendChild(dayCell({d,count,isToday:key===todayKey()})); } $('monthTotal').textContent=total; $('monthAvg').textContent=(total/daysInMonth).toFixed(1); }
+    function dayCell(info, off=false){ const el=document.createElement('div'); el.className='day'+(off?' off':''); if(!info) return el; if(info.isToday) el.classList.add('today'); const pct=Math.min(100,(info.count/20)*100); el.innerHTML=`<div class="d">${String(info.d)}</div><div class="c">${info.count}</div><div class="spark"><div style=\"width:${pct}%; background:linear-gradient(90deg, var(--green), var(--blue));\"></div></div>`; return el; }
+
+    // =============================
+    // JS-only flat-file sync (requires server allowing CORS + PUT)
+    // =============================
+    function fileUrl(){ const base = state.cfg?.baseUrl || ''; const id = state.cfg?.userId || 'u1'; return base.replace(/\/?$/,'/') + id + '.txt'; }
+    function authHeader(){ if(!state.cfg?.login) return {}; return { 'Authorization': 'Basic ' + btoa(state.cfg.login + ':' + (state.cfg.password||'')) }; }
+
+    async function testAuth(){ // HEAD to check access
+      const r = await fetch(fileUrl(), { method:'HEAD', headers: { ...authHeader() }, mode:'cors' });
+      if(!r.ok && r.status!==404) throw new Error('auth');
+    }
+
+    async function pull(){ if(!state.cfg?.login) return; setSyncState('pull...'); const r = await fetch(fileUrl(), { headers:{ ...authHeader() }, mode:'cors' }); if(r.status===404){ setSyncState('online'); return; } if(!r.ok){ setSyncState('offline'); throw new Error('pull'); } const txt = await r.text(); try{ const obj = JSON.parse(txt); if(obj && typeof obj==='object'){ state.data = obj; saveLocal(); renderToday(); renderMonth(); } }catch{} setSyncState('online'); }
+
+    async function push(){ if(!state.cfg?.login) return; setSyncState('push...'); const body = JSON.stringify(state.data); const r = await fetch(fileUrl(), { method:'PUT', headers:{ 'Content-Type':'text/plain', ...authHeader() }, body, mode:'cors' }); if(!r.ok){ setSyncState('offline'); throw new Error('push'); } setSyncState('online'); }
+
+    let syncTimer=null; function syncDeferred(){ if(!state.cfg?.login) return; clearTimeout(syncTimer); syncTimer=setTimeout(()=>{ push().catch(()=>setSyncState('offline')); }, 800); }
+
+    function requireAuth(){ const has = !!(state.cfg && state.cfg.login && state.cfg.baseUrl); document.getElementById('authModal').hidden = has; setSyncState(has?'online':'offline'); }
+
+    // =============================
+    // Auth modal
+    // =============================
+    document.getElementById('doLogin').addEventListener('click', async ()=>{
+      const baseUrl = document.getElementById('baseUrl').value.trim();
+      const userId  = document.getElementById('whichUser').value; // u1/u2/u3
+      const login   = document.getElementById('login').value.trim();
+      const password= document.getElementById('password').value;
+      document.getElementById('authMsg').textContent = '';
+      if(!/^https?:\/\//i.test(baseUrl)) { document.getElementById('authMsg').textContent = 'URL invalide'; return; }
+      state.cfg = { baseUrl, userId, login, password: password };
+      try{ await testAuth(); saveCfg(); requireAuth(); await pull(); toast('Connecté'); }
+      catch(e){ document.getElementById('authMsg').textContent = 'Accès refusé (CORS/Basic Auth/PUT ?)'; }
+    });
+    document.getElementById('skipAuth').addEventListener('click', ()=>{ document.getElementById('authModal').hidden=true; setSyncState('offline'); });
+
+    // =============================
+    // Export / Import / Clear (local)
+    // =============================
+    function exportJSON(){ const blob = new Blob([JSON.stringify(state.data,null,2)], {type:'application/json'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='cigarettes_stats.json'; a.click(); URL.revokeObjectURL(url); }
+    function importJSON(file){ const r = new FileReader(); r.onload = ()=>{ try{ const obj = JSON.parse(r.result); if(obj && typeof obj==='object'){ state.data=obj; saveLocal(); renderToday(); renderMonth(); syncDeferred(); toast('Import OK'); } else toast('Fichier invalide'); } catch{ toast('JSON invalide'); } }; r.readAsText(file); }
+    function clearAll(){ if(confirm('Effacer TOUTES les stats locales ?')){ state.data = {}; saveLocal(); renderToday(); renderMonth(); toast('Tout effacé'); } }
+
+    // =============================
+    // Events
+    // =============================
+    document.getElementById('btnAdd').addEventListener('click', addOne);
+    document.getElementById('btnUndo').addEventListener('click', undoOne);
+    document.getElementById('btnReset').addEventListener('click', resetToday);
+    document.getElementById('prevMonth').addEventListener('click', ()=>{ state.currentMonth=new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth()-1, 1); renderMonth(); });
+    document.getElementById('nextMonth').addEventListener('click', ()=>{ state.currentMonth=new Date(state.currentMonth.getFullYear(), state.currentMonth.getMonth()+1, 1); renderMonth(); });
+    document.getElementById('thisMonth').addEventListener('click', ()=>{ state.currentMonth=new Date(); renderMonth(); });
+
+    document.getElementById('btnExport').addEventListener('click', exportJSON);
+    document.getElementById('btnImport').addEventListener('click', ()=> document.getElementById('importFile').click());
+    document.getElementById('importFile').addEventListener('change', (e)=>{ const f=e.target.files?.[0]; if(f) importJSON(f); e.target.value=''; });
+    document.getElementById('btnClearAll').addEventListener('click', clearAll);
+
+    document.getElementById('btnSync').addEventListener('click', ()=>{ pull().then(()=>push()).catch(()=>setSyncState('offline')); });
+    document.getElementById('btnLogout').addEventListener('click', ()=>{ state.cfg={}; saveCfg(); requireAuth(); });
+
+    // =============================
+    // Init
+    // =============================
+    loadLocal(); renderToday(); renderMonth(); requireAuth(); if(state.cfg && state.cfg.login){ pull().catch(()=>setSyncState('offline')); }
+  </script>
+</body>
+</html>
