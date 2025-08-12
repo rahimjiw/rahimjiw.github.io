@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DNS</title>
+  <meta name="color-scheme" content="dark">
+  <style>
+    :root{
+      --bg: #07090b;
+      --card: rgba(10,16,22,0.6);
+      --border: rgba(0,255,170,0.2);
+      --text: #e6f6ff;
+      --muted: #a6c7cf;
+      --blue: #2ab3ff;
+      --green: #00ffa8;
+      --focus: #7fffd4;
+      --shadow: 0 10px 30px rgba(0,0,0,0.45), 0 0 40px rgba(0,255,168,0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      color:var(--text); background: var(--bg);
+      overflow-x:hidden;
+    }
+
+    .backdrop{ position: fixed; inset: 0; pointer-events:none; filter: blur(60px) saturate(120%);
+      background:
+        radial-gradient(70vmax 70vmax at 15% 20%, rgba(0,255,168,0.12), transparent 55%),
+        radial-gradient(60vmax 60vmax at 85% 30%, rgba(42,179,255,0.12), transparent 60%),
+        radial-gradient(50vmax 50vmax at 50% 80%, rgba(0,70,40,0.35), transparent 60%);
+      animation: drift 30s ease-in-out infinite alternate;
+    }
+    @keyframes drift { from { transform: translateY(-2%) scale(1);} to { transform: translateY(2%) scale(1.05);} }
+
+    .scan{ position: fixed; inset:0; pointer-events:none; opacity:0.07; mix-blend-mode: screen;
+      background: linear-gradient(to bottom, transparent 95%, rgba(0,255,168,0.4) 100%);
+      background-size: 100% 8px;
+    }
+
+    main{ position:relative; z-index:1; min-height:100%; padding:24px; display:grid; gap:22px; }
+
+    .card{ width:min(1100px, 96vw); margin-inline:auto; background: linear-gradient(180deg, rgba(12,18,24,0.7), rgba(5,10,12,0.6));
+      border: 1px solid var(--border); border-radius: 24px; padding: 22px; box-shadow: var(--shadow); backdrop-filter: blur(14px);
+    }
+
+    .header{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+    h1{ margin:0; font-weight:700; letter-spacing:.4px; font-size: clamp(20px, 3vw, 28px);
+      background: linear-gradient(90deg, var(--green), var(--blue)); -webkit-background-clip: text; background-clip: text; color: transparent;
+      text-shadow: 0 0 12px rgba(0,255,168,0.25);
+    }
+
+    .controls{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .input{ display:flex; align-items:center; gap:10px; background: linear-gradient(180deg, rgba(6,18,28,0.5), rgba(6,18,28,0.35));
+      border:1px solid rgba(42,179,255,0.18); border-radius: 14px; padding: 8px 12px; }
+    .input input{ background:transparent; border:none; outline:none; color:var(--text); min-width:210px; font-size:16px; }
+    .select{ position:relative; }
+    select{ appearance:none; background: linear-gradient(180deg, rgba(0,255,168,0.12), rgba(42,179,255,0.12)); border:1px solid rgba(0,255,168,0.2);
+      color:var(--text); padding:8px 34px 8px 10px; border-radius:14px; font-weight:600; cursor:pointer; }
+    .select:after{ content:"▾"; position:absolute; right:10px; top:50%; transform: translateY(-50%); pointer-events:none; color:var(--muted); }
+
+    .actions{ display:flex; gap:10px; }
+    button{ appearance:none; border:none; cursor:pointer; border-radius:14px; padding:10px 14px; font-weight:600; color:var(--text);
+      background: linear-gradient(180deg, rgba(0,255,168,0.16), rgba(42,179,255,0.16)); outline: 1px solid rgba(0,255,168,0.18);
+      transition: transform .15s ease, box-shadow .2s ease, outline-color .2s ease; }
+    button:hover{ transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,255,168,0.18); }
+    button:active{ transform: translateY(0); }
+    button:focus-visible{ outline-color: var(--focus); }
+
+    .status{ display:flex; align-items:center; gap:10px; font-size:13px; color:var(--muted); margin-top:10px; }
+    .dot{ width:10px; height:10px; border-radius:50%; background: radial-gradient(circle at 40% 40%, var(--green), #094);
+          box-shadow: 0 0 16px rgba(0,255,168,0.55); animation: pulse 1.4s ease-in-out infinite; }
+    @keyframes pulse { 50% { transform: scale(1.15); filter: brightness(1.2); } }
+
+    .grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:14px; margin-top:14px; }
+    .panel{ border:1px solid rgba(42,179,255,0.18); border-radius:16px; padding:14px; background: linear-gradient(180deg, rgba(6,18,28,0.5), rgba(6,18,28,0.35)); }
+    .panel h3{ margin:0 0 8px; font-size:14px; letter-spacing:.3px; text-transform:uppercase; color:var(--muted); }
+
+    table{ width:100%; border-collapse: collapse; font-size: 14px; }
+    th, td{ text-align:left; padding:8px 6px; border-bottom: 1px dashed rgba(0,255,168,0.12); vertical-align: top; }
+    th{ font-size: 12px; text-transform: uppercase; letter-spacing:.3px; color: var(--muted); }
+    .nowrap{ white-space: nowrap; }
+    .mono{ font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
+
+    .footer{ margin-top:10px; display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .hint{ font-size:12px; color:var(--muted); }
+
+    .toast{ position: fixed; left:50%; bottom: 28px; transform: translateX(-50%) translateY(20px); background: rgba(0,0,0,0.7);
+      border:1px solid rgba(0,255,168,0.3); padding:10px 14px; border-radius:12px; opacity:0; transition: opacity .25s ease, transform .25s ease; pointer-events:none; box-shadow: 0 10px 30px rgba(0,255,168,0.12); }
+    .toast.show{ opacity:1; transform: translateX(-50%) translateY(0); }
+
+    .badge{ display:inline-block; padding:2px 8px; border-radius:10px; border:1px solid rgba(0,255,168,0.25); background: rgba(0,255,168,0.07); font-size:11px; }
+  </style>
+</head>
+<body>
+  <div class="backdrop" aria-hidden="true"></div>
+  <div class="scan" aria-hidden="true"></div>
+
+  <main>
+    <section class="card" role="region" aria-labelledby="title">
+      <div class="header">
+        <h1 id="title">Infos DNS d'un domaine</h1>
+        <div class="controls">
+          <label class="input" for="domain">
+            <span class="mono">🔎</span>
+            <input id="domain" type="text" inputmode="url" placeholder="ex: example.com" spellcheck="false" />
+          </label>
+          <div class="select">
+            <select id="resolver">
+              <option value="google" selected>Résolveur : Google DoH</option>
+              <option value="cloudflare">Résolveur : Cloudflare DoH</option>
+            </select>
+          </div>
+          <div class="actions">
+            <button id="lookupBtn">🔁 Rechercher</button>
+            <button id="copyBtn">⧉ Copier les résultats</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="status" id="status"><span class="dot" aria-hidden="true"></span><span>Entrez un domaine et lancez la recherche.</span></div>
+
+      <div class="grid" id="results">
+        <!-- Panels filled by JS -->
+      </div>
+
+      <div class="footer">
+        <div class="hint">Les données proviennent de <span class="badge">DNS over HTTPS</span>. Types : A, AAAA, CNAME, MX, TXT, NS, SOA, CAA, SRV.</div>
+        <div class="hint mono" id="ts"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const statusEl = $("status");
+    const tsEl = $("ts");
+    const toast = $("toast");
+    const resultsEl = $("results");
+
+    const TYPES = ["A","AAAA","CNAME","MX","TXT","NS","SOA","CAA","SRV"];
+
+    function setStatus(text){ statusEl.querySelector('span:last-child').textContent = text; }
+    function setTimestamp(){ tsEl.textContent = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'medium' }).format(new Date()); }
+    function showToast(msg){ toast.textContent = msg; toast.classList.add('show'); clearTimeout(showToast._t); showToast._t=setTimeout(()=>toast.classList.remove('show'),2200); }
+
+    function validDomain(input){
+      // Accept unicode punycode or ASCII; no protocol; no path
+      const s = input.trim().replace(/^https?:\/\//i, '').replace(/\/.*/, '').replace(/^www\./i,'');
+      // Very permissive, rejects spaces and underscores; max 253 chars
+      const re = /^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9-]{2,63}$/i;
+      return re.test(s) ? s : null;
+    }
+
+    async function fetchWithTimeout(url, {headers, ms=8000}={}){
+      const ctrl = new AbortController(); const t=setTimeout(()=>ctrl.abort(),ms);
+      try{ return await fetch(url, { signal: ctrl.signal, headers, cache:'no-store' }); }
+      finally{ clearTimeout(t); }
+    }
+
+    function dohUrl(resolver, name, type){
+      if(resolver === 'cloudflare'){
+        const u = new URL('https://cloudflare-dns.com/dns-query');
+        u.searchParams.set('name', name); u.searchParams.set('type', type);
+        return { url: u.toString(), headers: { 'Accept': 'application/dns-json' } };
+      } else {
+        const u = new URL('https://dns.google/resolve');
+        u.searchParams.set('name', name); u.searchParams.set('type', type);
+        return { url: u.toString(), headers: {} };
+      }
+    }
+
+    async function resolveOnce(resolver, name, type){
+      const {url, headers} = dohUrl(resolver, name, type);
+      const res = await fetchWithTimeout(url, { headers });
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data = await res.json();
+      // Google & Cloudflare JSON formats are very similar.
+      // We expect `Answer` array and optionally `Authority`/`Additional`.
+      return data;
+    }
+
+    function formatAnswerRow(type, ans){
+      // ans: { name, type, TTL, data }
+      const ttl = ans.TTL ?? ans.ttl ?? '';
+      let data = ans.data ?? ans.value ?? '';
+      if(type === 'TXT'){
+        // TXT often returns quoted strings; normalize
+        data = data.replace(/^\"|\"$/g,'');
+      }
+      if(type === 'MX'){
+        // "15 mail.example.com." -> priority + host
+        // Some APIs provide as "PRIORITY HOST" already
+        // Keep as-is but split for columns
+      }
+      return { name: ans.name || '', ttl, data };
+    }
+
+    function renderTable(type, answers){
+      const hasRows = answers && answers.length;
+      const html = [`<div class="panel"><h3>${type}</h3>`];
+      if(!hasRows){ html.push('<div class="muted">Aucune réponse</div></div>'); return html.join(''); }
+      html.push('<table><thead><tr>');
+      html.push('<th class="nowrap">Nom</th>');
+      html.push('<th class="nowrap">TTL</th>');
+      html.push('<th>Données</th>');
+      html.push('</tr></thead><tbody>');
+      for(const r of answers){
+        html.push(`<tr><td class="mono">${escapeHtml(r.name)}</td><td class="mono nowrap">${r.ttl}</td><td class="mono">${escapeHtml(r.data)}</td></tr>`);
+      }
+      html.push('</tbody></table></div>');
+      return html.join('');
+    }
+
+    function escapeHtml(s){ return String(s).replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c])); }
+
+    async function lookup(){
+      const input = $("domain").value;
+      const domain = validDomain(input);
+      if(!domain){ setStatus('Domaine invalide. Exemple : example.com'); showToast('Domaine invalide'); return; }
+
+      setStatus(`Recherche DNS pour \u00AB ${domain} \u00BB…`);
+      setTimestamp();
+      resultsEl.innerHTML = '';
+
+      const resolver = $("resolver").value;
+
+      const promises = TYPES.map(async t => {
+        try{
+          const data = await resolveOnce(resolver, domain, t);
+          const answers = (data.Answer||[]).map(a=>formatAnswerRow(t,a));
+          return { type:t, answers };
+        }catch(e){
+          console.error('Error for type', t, e);
+          return { type:t, answers: [] };
+        }
+      });
+
+      const out = await Promise.all(promises);
+      // Keep original order from TYPES
+      resultsEl.innerHTML = out.map(x => renderTable(x.type, x.answers)).join('');
+
+      const any = out.some(x => x.answers.length);
+      setStatus(any ? 'Résultats chargés.' : 'Aucun enregistrement trouvé.');
+    }
+
+    $("lookupBtn").addEventListener('click', lookup);
+    $("domain").addEventListener('keydown', (e)=>{ if(e.key==='Enter') lookup(); });
+
+    $("copyBtn").addEventListener('click', ()=>{
+      const text = collectAsText();
+      if(!text){ showToast('Rien à copier'); return; }
+      navigator.clipboard.writeText(text).then(()=> showToast('Résultats copiés'), ()=> showToast('Copie refusée'));
+    });
+
+    function collectAsText(){
+      const sections = resultsEl.querySelectorAll('.panel');
+      if(!sections.length) return '';
+      const lines = [];
+      sections.forEach(sec=>{
+        const type = sec.querySelector('h3')?.textContent?.trim();
+        lines.push('['+type+']');
+        sec.querySelectorAll('tbody tr').forEach(tr=>{
+          const tds = [...tr.children].map(td=>td.textContent.trim());
+          lines.push(tds.join('\t'));
+        });
+        lines.push('');
+      });
+      return lines.join('\n');
+    }
+
+    // Optional: prefill with current hostname (without subdomain) for convenience
+    (()=>{
+      try{
+        const host = location.hostname.replace(/^www\./,'');
+        if(host && host.includes('.')) $("domain").value = host;
+      }catch{}
+    })();
+  </script>
+</body>
+</html>
